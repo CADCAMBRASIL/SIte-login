@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Área do Aluno - CADCAM BRASIL</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen">
+    <div id="box-alerta" class="hidden bg-red-600 text-white p-4 shadow-lg text-center font-bold sticky top-0 z-50 animate-bounce">
+        ⚠️ <span id="msg-alerta"></span>
+        <button onclick="fecharAlerta()" class="ml-4 underline text-sm">Entendido</button>
+    </div>
+
+    <div class="max-w-4xl mx-auto p-8">
+        <h1 class="text-3xl font-black text-slate-800">CADCAM BRASIL</h1>
+        <p class="text-slate-500 mb-8 font-medium">Bem-vindo ao Treinamento CNC</p>
+        
+        <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
+            <h2 class="text-xl font-bold mb-4 text-slate-700">Meus Processos</h2>
+            <p class="text-slate-600">Seu progresso está sendo monitorado em tempo real pelo Professor Brendo.</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA9FjKajgp5_rM-Yoml8CwGCAxanMfWzS4",
+            authDomain: "cadcam-portal.firebaseapp.com",
+            projectId: "cadcam-portal",
+            storageBucket: "cadcam-portal.firebasestorage.app",
+            messagingSenderId: "513261687046",
+            appId: "1:513261687046:web:190a1f709124b97eb94e87",
+            measurementId: "G-V7Y288XRS4"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                const userRef = doc(db, "usuarios", user.uid);
+                updateDoc(userRef, { online: true });
+
+                onSnapshot(userRef, (d) => {
+                    if (d.data() && d.data().alerta) {
+                        document.getElementById('box-alerta').classList.remove('hidden');
+                        document.getElementById('msg-alerta').innerText = d.data().alerta;
+                    }
+                });
+
+                window.addEventListener('beforeunload', () => updateDoc(userRef, { online: false }));
+            } else {
+                window.location.href = "index.html";
+            }
+        });
+
+        window.fecharAlerta = () => {
+            document.getElementById('box-alerta').classList.add('hidden');
+            updateDoc(doc(db, "usuarios", auth.currentUser.uid), { alerta: "" });
+        };
+    </script>
+</body>
+</html>

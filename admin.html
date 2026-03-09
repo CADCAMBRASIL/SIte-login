@@ -5,25 +5,29 @@
     <title>Painel ADIM - CADCAM BRASIL</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-100 p-8">
+<body class="bg-slate-100 p-8 font-sans">
     <div class="max-w-6xl mx-auto">
         <div class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-bold text-slate-800">Monitoramento de Alunos</h1>
-            <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded-lg">Sair</button>
+            <div>
+                <h1 class="text-3xl font-black text-slate-800">Monitoramento CADCAM</h1>
+                <p class="text-slate-500 font-medium">Painel do Professor Brendo</p>
+            </div>
+            <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-xl font-bold transition-all shadow-md">
+                Sair
+            </button>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
-            <table class="w-full text-left">
+        <div class="bg-white rounded-3xl shadow-sm overflow-hidden border border-slate-200">
+            <table class="w-full text-left border-collapse">
                 <thead class="bg-slate-800 text-white">
                     <tr>
-                        <th class="p-4">Aluno</th>
-                        <th class="p-4">E-mail</th>
-                        <th class="p-4">Status</th>
-                        <th class="p-4">Atividade</th>
-                        <th class="p-4">Ação</th>
+                        <th class="p-5 font-bold uppercase text-xs tracking-wider">Aluno</th>
+                        <th class="p-5 font-bold uppercase text-xs tracking-wider">E-mail</th>
+                        <th class="p-5 font-bold uppercase text-xs tracking-wider">Status</th>
+                        <th class="p-5 font-bold uppercase text-xs tracking-wider">Ação</th>
                     </tr>
                 </thead>
-                <tbody id="tabela-alunos">
+                <tbody id="tabela-alunos" class="divide-y divide-slate-100">
                     </tbody>
             </table>
         </div>
@@ -31,65 +35,64 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // COLE AQUI AS MESMAS CHAVES DO INDEX.HTML
-       <script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyA9FjKajgp5_rM-Yoml8CwGCAxanMfWzS4",
-    authDomain: "cadcam-portal.firebaseapp.com",
-    projectId: "cadcam-portal",
-    storageBucket: "cadcam-portal.firebasestorage.app",
-    messagingSenderId: "513261687046",
-    appId: "1:513261687046:web:190a1f709124b97eb94e87",
-    measurementId: "G-V7Y288XRS4"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-</script>
+        // Suas chaves configuradas
+        const firebaseConfig = {
+            apiKey: "AIzaSyA9FjKajgp5_rM-Yoml8CwGCAxanMfWzS4",
+            authDomain: "cadcam-portal.firebaseapp.com",
+            projectId: "cadcam-portal",
+            storageBucket: "cadcam-portal.firebasestorage.app",
+            messagingSenderId: "513261687046",
+            appId: "1:513261687046:web:190a1f709124b97eb94e87",
+            measurementId: "G-V7Y288XRS4"
+        };
 
         const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
         const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        // ESCUTAR O BANCO DE DADOS EM TEMPO REAL
+        // Segurança: Só deixa ficar na página se estiver logado
+        onAuthStateChanged(auth, (user) => {
+            if (!user) window.location.href = "index.html";
+        });
+
+        // Escutar a lista de alunos em tempo real
         onSnapshot(collection(db, "usuarios"), (snapshot) => {
             const tabela = document.getElementById('tabela-alunos');
             tabela.innerHTML = "";
             
             snapshot.forEach((docData) => {
                 const aluno = docData.data();
-                const corStatus = aluno.online ? "text-green-500" : "text-gray-400";
+                if(aluno.regra === 'admin') return; // Não mostra o próprio professor na lista
+
+                const corStatus = aluno.online ? "text-green-500" : "text-slate-300";
                 
                 tabela.innerHTML += `
-                    <tr class="border-b">
-                        <td class="p-4 font-bold">${aluno.nome}</td>
-                        <td class="p-4">${aluno.email}</td>
-                        <td class="p-4"><span class="${corStatus}">● ${aluno.online ? 'Online' : 'Offline'}</span></td>
-                        <td class="p-4">${aluno.progresso || 0}% Concluído</td>
-                        <td class="p-4">
-                            <button onclick="enviarAlerta('${docData.id}')" class="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700">Notificar Aluno</button>
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="p-5 font-bold text-slate-700">${aluno.nome}</td>
+                        <td class="p-5 text-slate-500">${aluno.email}</td>
+                        <td class="p-5 font-bold ${corStatus}">● ${aluno.online ? 'Online' : 'Offline'}</td>
+                        <td class="p-5">
+                            <button onclick="enviarAlerta('${docData.id}')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-sm">
+                                Notificar Aluno
+                            </button>
                         </td>
                     </tr>
                 `;
             });
         });
 
+        // Função para o Brendo enviar o alerta
         window.enviarAlerta = async (id) => {
-            alert("Enviando notificação: Professor monitorando você!");
             const alunoRef = doc(db, "usuarios", id);
-            await updateDoc(alunoRef, { notificacao: "O Professor está monitorando seu progresso. Finalize a atividade!" });
+            await updateDoc(alunoRef, { alerta: "O Professor Brendo está monitorando sua atividade agora!" });
+            alert("Notificação enviada com sucesso!");
+        };
+
+        window.logout = () => {
+            signOut(auth).then(() => window.location.href = "index.html");
         };
     </script>
 </body>

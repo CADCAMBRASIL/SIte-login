@@ -2,117 +2,78 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CADCAM BRASIL - Portal do Aluno</title>
+    <title>Portal CADCAM BRASIL</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
-            background-color: #0f172a;
-            font-family: 'Inter', sans-serif;
+        body { background-color: #0f172a; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .bg-logo-fundo {
+            /* AJUSTE AQUI: O nome tem que ser igual ao arquivo na sua pasta */
+            background-image: url('logo-cadcam.png'); 
+            background-repeat: no-repeat; background-position: center; background-size: 50%;
+            opacity: 0.1; position: fixed; inset: 0; z-index: 0; pointer-events: none;
         }
-        .bg-logo {
-            background-image: url('sua-logo.png'); /* Coloque o link da sua imagem aqui */
-            background-repeat: no-repeat;
-            background-position: center;
-            background-size: 60%;
-            opacity: 0.1;
-            position: absolute;
-            inset: 0;
-            z-index: 0;
-            pointer-events: none;
-        }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            z-index: 10;
-        }
+        .glass-card { background: white; z-index: 10; width: 100%; max-width: 400px; padding: 2rem; border-radius: 1.5rem; position: relative; }
     </style>
 </head>
-<body class="flex items-center justify-center min-h-screen p-4">
+<body>
+    <div class="bg-logo-fundo"></div>
 
-    <div class="bg-logo"></div>
-
-    <div id="login-card" class="glass-card w-full max-w-md p-8 rounded-2xl shadow-2xl">
-        <div class="text-center mb-6">
-            <h1 class="text-3xl font-bold text-slate-800">CADCAM BRASIL</h1>
-            <p class="text-slate-500">Área do Aluno</p>
-        </div>
-
-        <form id="login-form" class="space-y-4">
-            <div>
-                <label class="block text-sm font-medium text-slate-700">E-mail</label>
-                <input type="email" id="login-email" required class="w-full px-4 py-2 mt-1 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+    <div class="glass-card">
+        <h1 class="text-2xl font-bold text-center mb-6">CADCAM BRASIL</h1>
+        <form id="auth-form" class="space-y-4">
+            <div id="campo-nome" class="hidden">
+                <input type="text" id="nome" placeholder="Nome Completo" class="w-full p-2 border rounded">
             </div>
-            <div>
-                <label class="block text-sm font-medium text-slate-700">Senha</label>
-                <input type="password" id="login-password" required class="w-full px-4 py-2 mt-1 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-            </div>
-            
-            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-all transform active:scale-95">
-                Entrar
-            </button>
+            <input type="email" id="email" placeholder="E-mail" class="w-full p-2 border rounded" required>
+            <input type="password" id="password" placeholder="Senha" class="w-full p-2 border rounded" required>
+            <button type="submit" id="btn-principal" class="w-full bg-blue-600 text-white p-2 rounded font-bold">Entrar</button>
         </form>
-
-        <div class="mt-6 flex flex-col items-center space-y-4 text-sm">
-            <button onclick="mostrarEsqueciSenha()" class="text-blue-600 hover:underline">Esqueci minha senha</button>
-            <hr class="w-full border-slate-200">
-            <p>Novo por aqui? <button onclick="irParaCadastro()" class="font-bold text-blue-600 hover:underline">Criar uma conta nova</button></p>
+        <div class="mt-4 text-center text-sm">
+            <button onclick="ativarModoCadastro()" class="text-blue-600 underline">Criar conta nova</button>
         </div>
     </div>
 
-    <div id="signup-card" class="hidden glass-card w-full max-w-md p-8 rounded-2xl shadow-2xl">
-        <h2 class="text-2xl font-bold text-slate-800 text-center mb-2">Novo Cadastro</h2>
-        <p class="text-xs text-center text-blue-700 bg-blue-50 p-3 rounded-lg mb-6 border border-blue-100">
-            PARA CRIAR UMA CONTA NOVA VOCÊ DEVE USAR O EMAIL USADO PARA A PLATAFORMA DE ESTUDO!
-        </p>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, sendEmailVerification, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        <form id="signup-form" class="space-y-4">
-            <div>
-                <label class="block text-sm font-medium text-slate-700">Nome Completo</label>
-                <input type="text" id="name" required class="w-full px-4 py-2 mt-1 border border-slate-300 rounded-lg outline-none">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-slate-700">E-mail (Gmail/Outlook)</label>
-                <input type="email" id="signup-email" required class="w-full px-4 py-2 mt-1 border border-slate-300 rounded-lg outline-none">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-slate-700">Criar Senha</label>
-                <input type="password" id="signup-password" required 
-                       pattern="(?=.*[A-Z])(?=.*[!@#$%^&*]).{8,}"
-                       title="Deve conter 1 letra maiúscula, 1 símbolo e no mínimo 8 caracteres."
-                       class="w-full px-4 py-2 mt-1 border border-slate-300 rounded-lg outline-none">
-                <p class="text-[10px] text-slate-400 mt-1">* Use 1 letra maiúscula e 1 símbolo.</p>
-            </div>
+        const firebaseConfig = {
+            apiKey: "AIzaSyA9FjKajgp5_rM-Yoml8CwGCAxanMfWzS4",
+            authDomain: "cadcam-portal.firebaseapp.com",
+            projectId: "cadcam-portal",
+            storageBucket: "cadcam-portal.firebasestorage.app",
+            messagingSenderId: "513261687046",
+            appId: "1:513261687046:web:190a1f709124b97eb94e87"
+        };
 
-            <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition-all">
-                Verificar e Criar Conta
-            </button>
-        </form>
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        <button onclick="irParaLogin()" class="w-full mt-4 text-sm text-slate-500 hover:underline text-center">Voltar para o Login</button>
-    </div>
+        window.ativarModoCadastro = () => {
+            document.getElementById('campo-nome').classList.remove('hidden');
+            document.getElementById('btn-principal').innerText = "Cadastrar e Verificar E-mail";
+            window.modoCadastro = true;
+        };
 
-    <script>
-        // Lógica de navegação simples
-        function irParaCadastro() {
-            document.getElementById('login-card').classList.add('hidden');
-            document.getElementById('signup-card').classList.remove('hidden');
-        }
-
-        function irParaLogin() {
-            document.getElementById('signup-card').classList.add('hidden');
-            document.getElementById('login-card').classList.remove('hidden');
-        }
-
-        function mostrarEsqueciSenha() {
-            const email = prompt("Digite seu e-mail para receber o link de troca de senha:");
-            if (email) alert("Se o e-mail for válido, você receberá um link em breve!");
-        }
-
-        // Validação de senha no cadastro
-        document.getElementById('signup-form').onsubmit = function(e) {
+        document.getElementById('auth-form').onsubmit = async (e) => {
             e.preventDefault();
-            alert("Sua conta está sendo verificada. Confira seu e-mail!");
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('password').value;
+
+            if (window.modoCadastro) {
+                try {
+                    const res = await createUserWithEmailAndPassword(auth, email, pass);
+                    await sendEmailVerification(res.user);
+                    alert("E-mail de verificação enviado! Confira sua caixa de entrada.");
+                } catch (err) { alert("Erro: " + err.message); }
+            } else {
+                try {
+                    await signInWithEmailAndPassword(auth, email, pass);
+                    alert("Logado com sucesso!");
+                } catch (err) { alert("Erro no login!"); }
+            }
         };
     </script>
 </body>
