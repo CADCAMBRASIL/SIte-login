@@ -2,41 +2,52 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portal CADCAM BRASIL</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #0f172a; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        body { background-color: #0f172a; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; overflow: hidden; }
         .bg-logo-fundo {
-            /* AJUSTE AQUI: O nome tem que ser igual ao arquivo na sua pasta */
+            /* ATENÇÃO: O nome do arquivo deve ser exatamente igual ao que você subiu no GitHub */
             background-image: url('logo-cadcam.png'); 
             background-repeat: no-repeat; background-position: center; background-size: 50%;
             opacity: 0.1; position: fixed; inset: 0; z-index: 0; pointer-events: none;
         }
-        .glass-card { background: white; z-index: 10; width: 100%; max-width: 400px; padding: 2rem; border-radius: 1.5rem; position: relative; }
+        .glass-card { background: white; z-index: 10; width: 100%; max-width: 400px; padding: 2.5rem; border-radius: 2rem; position: relative; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); text-align: center; }
     </style>
 </head>
 <body>
     <div class="bg-logo-fundo"></div>
 
     <div class="glass-card">
-        <h1 class="text-2xl font-bold text-center mb-6">CADCAM BRASIL</h1>
-        <form id="auth-form" class="space-y-4">
+        <h1 class="text-3xl font-black text-slate-800 mb-2 uppercase">CADCAM BRASIL</h1>
+        <p id="subtitulo" class="text-slate-500 mb-6 font-medium">Área do Aluno</p>
+
+        <form id="auth-form" class="space-y-4 text-left">
             <div id="campo-nome" class="hidden">
-                <input type="text" id="nome" placeholder="Nome Completo" class="w-full p-2 border rounded">
+                <label class="block text-sm font-bold text-slate-700 text-left">Nome Completo</label>
+                <input type="text" id="nome" class="w-full p-3 border border-slate-300 rounded-xl outline-none">
             </div>
-            <input type="email" id="email" placeholder="E-mail" class="w-full p-2 border rounded" required>
-            <input type="password" id="password" placeholder="Senha" class="w-full p-2 border rounded" required>
-            <button type="submit" id="btn-principal" class="w-full bg-blue-600 text-white p-2 rounded font-bold">Entrar</button>
+            <div>
+                <label class="block text-sm font-bold text-slate-700 text-left">E-mail</label>
+                <input type="email" id="email" required class="w-full p-3 border border-slate-300 rounded-xl outline-none">
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-slate-700 text-left">Senha</label>
+                <input type="password" id="password" required class="w-full p-3 border border-slate-300 rounded-xl outline-none">
+            </div>
+            <button type="submit" id="btn-principal" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all">Entrar</button>
         </form>
-        <div class="mt-4 text-center text-sm">
-            <button onclick="ativarModoCadastro()" class="text-blue-600 underline">Criar conta nova</button>
+
+        <div class="mt-6 text-center text-sm">
+            <button onclick="ativarModoCadastro()" class="text-blue-600 font-bold underline">Criar conta nova</button>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, sendEmailVerification, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyA9FjKajgp5_rM-Yoml8CwGCAxanMfWzS4",
@@ -53,7 +64,8 @@
 
         window.ativarModoCadastro = () => {
             document.getElementById('campo-nome').classList.remove('hidden');
-            document.getElementById('btn-principal').innerText = "Cadastrar e Verificar E-mail";
+            document.getElementById('subtitulo').innerText = "Novo Cadastro";
+            document.getElementById('btn-principal').innerText = "Verificar e Criar Conta";
             window.modoCadastro = true;
         };
 
@@ -61,18 +73,24 @@
             e.preventDefault();
             const email = document.getElementById('email').value;
             const pass = document.getElementById('password').value;
+            const nome = document.getElementById('nome').value;
 
             if (window.modoCadastro) {
                 try {
                     const res = await createUserWithEmailAndPassword(auth, email, pass);
                     await sendEmailVerification(res.user);
+                    await setDoc(doc(db, "usuarios", res.user.uid), { nome, email, regra: "aluno", online: false });
                     alert("E-mail de verificação enviado! Confira sua caixa de entrada.");
-                } catch (err) { alert("Erro: " + err.message); }
+                    location.reload();
+                } catch (err) { alert("Erro no cadastro: " + err.message); }
             } else {
                 try {
-                    await signInWithEmailAndPassword(auth, email, pass);
-                    alert("Logado com sucesso!");
-                } catch (err) { alert("Erro no login!"); }
+                    const res = await signInWithEmailAndPassword(auth, email, pass);
+                    if (!res.user.emailVerified) return alert("Valide seu e-mail antes!");
+                    const userDoc = await getDoc(doc(db, "usuarios", res.user.uid));
+                    if (userDoc.exists() && userDoc.data().regra === "admin") window.location.href = "admin.html";
+                    else window.location.href = "aluno.html";
+                } catch (err) { alert("E-mail ou senha incorretos!"); }
             }
         };
     </script>
